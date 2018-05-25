@@ -1,4 +1,4 @@
-challenger = read.csv("/Users/petergrabowski/Desktop/w271/challenger.csv", header=TRUE)
+challenger = read.csv("/Users/petergrabowski/w271/challenger.csv", header=TRUE)
 
 
 ####### Q4 ##########
@@ -18,6 +18,7 @@ summary(mod.fit)
 
 
 ####### 4C ##########
+# page 78
 library(package = car)
 
 Anova(mod.fit, test = "LR")
@@ -57,8 +58,8 @@ ci.pi = function(newdata, mod.fit.obj, alpha) {
 
 curve(expr=ci.pi(newdata = data.frame(Temp = x), mod.fit.obj = mod.fit2, alpha=0.05)$lower, lty = "dotdash", add = TRUE, xlim=c(31,81))
 curve(expr=ci.pi(newdata = data.frame(Temp = x), mod.fit.obj = mod.fit2, alpha=0.05)$upper, lty = "dotdash", add = TRUE, xlim=c(31,81))
-curve(expr=ci.pi(newdata = data.frame(Temp = x), mod.fit.obj = mod.fit2, alpha=0.05)$upper, lty = "dotdash", add = TRUE, xlim=c(31,81))
-legend(locator(1), legend = c("Logistic regression model", "95% individual C.I."), lty=c("solid", "dotdash"), col = c("blue", "blue"), bty = "n")
+
+# legend(locator(1), legend = c("Logistic regression model", "95% individual C.I."), lty=c("solid", "dotdash"), col = c("blue", "blue"), bty = "n")
 
 ####### 5C ##########
 
