@@ -1,6 +1,6 @@
 
 ```{r}
-challenger = read.csv("/Users/adhara/Dropbox/ucberkeley/271 Adv stats/Lab1/challenger.csv", header=TRUE)
+challenger = read.csv("/Users/petergrabowski/w271/challenger.csv", header=TRUE)
 ```
 
 
@@ -115,4 +115,43 @@ curve(expr=ci.pi(newdata = data.frame(Temp = x), mod.fit.obj = mod.fit2.incidenc
 # pi.hat = exp(linear.pred$fit) / (1 + exp(linear.pred$fit))
 # CI.lin.pred = linear.pred$fit + qnorm(p = c(alpha/2, 1-alpha/2)) * linear.pred$se.fit
 # CI.pi = exp(CI.lin.pred) / (1 + exp(CI.lin.pred))
+```
+
+
+
+```{r}
+####### 5D ##########
+temp_to_pred = data.frame(Temp=31)
+temp_pred = predict(object = mod.fit2.incidence, newdata = temp_to_pred, type = "link", se= TRUE)
+CI.lin.pred.lower = temp_pred$fit - qnorm(p = 1-alpha/2) * temp_pred$se
+CI.lin.pred.upper = temp_pred$fit + qnorm(p = 1-alpha/2) * temp_pred$se
+CI.pi.lower = exp(CI.lin.pred.lower) / (1+ exp(CI.lin.pred.lower))
+CI.pi.upper = exp(CI.lin.pred.upper) / (1+ exp(CI.lin.pred.upper))
+
+temp_pred
+CI.pi.lower
+CI.pi.upper
+#TODO add discussion 
+```
+
+
+```{r}
+####### 5E ##########
+####### parametric bootstrap ##########
+```
+
+
+```{r}
+####### 5F ##########
+####### quadratic term ##########
+```
+
+```{r}
+####### LAB1 ##########
+####### odds/prob failure ##########
+```
+
+```{r}
+####### LAB2 ##########
+####### linear regression ##########
 ```
