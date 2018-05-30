@@ -1,14 +1,39 @@
 
 ```{r}
-challenger = read.csv("/Users/petergrabowski/w271/challenger.csv", header=TRUE)
+challenger = read.csv("challenger.csv", header=TRUE)
 ```
 
+# Introduction
+
+## Questions addressed
+
+## Methodology
+
+## Highlight of Results
+
+# EDA
+
+There were 23 rows representing each flight of the shuttle program. Included were the following columns:
+
+|----------|---------|---------------------------------------------------------------------------------|
+| Flight   | integer | flight number, serves as an ID for this dataset                                 |
+| Temp     | int     | sea level temperature (## check this ##) at time of flight                      |
+| Pressure | int     | there were three different levels of pressure for which the O-Rings were set to |
+| O. Ring  | int     | the number of O-rings that failed in the launch                                 |
+| Number   | int     | the number of O-rings that were installed in the aircraft                       |
+|----------|---------|---------------------------------------------------------------------------------|
+
+For the sake of the analysis, the following changes were made to the dataset:
+1 - the column `ratio` was calculated to denote the proportion of failed O-Rings per flight
+    ```{r}
+    challenger$ratio = challenger$O.ring / challenger$Number
+    plot(x=challenger$ratio, y=challenger$Temp)
+    ```
+2 - the column `had_failure` was calculated to denote the incidence of a failed O-Ring in the flight
 
 ####### Q4 ##########
 ```{r}
 challenger$Pressure = factor(challenger$Pressure)
-challenger$ratio = challenger$O.ring / challenger$Number
-plot(x=challenger$ratio, y=challenger$Temp)
 ```
 ```{r}
 plot(x=challenger$ratio, y=challenger$Pressure)
