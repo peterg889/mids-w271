@@ -183,9 +183,12 @@ CI.pi.upper
 ```{r}
 ####### LAB1 ##########
 ####### odds/prob failure ##########
+# page 955 of text, compare 31 degrees to 60 degrees
 ```
 
 ```{r}
 ####### LAB2 ##########
 ####### linear regression ##########
+# assessing model diagnostics
+# https://www.statmethods.net/stats/rdiagnostics.html
 ```
