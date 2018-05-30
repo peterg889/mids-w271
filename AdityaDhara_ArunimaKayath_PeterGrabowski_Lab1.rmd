@@ -13,6 +13,15 @@ challenger = read.csv("challenger.csv", header=TRUE)
 
 # EDA
 
+# Discussion
+# https://stats.stackexchange.com/questions/116954/counterexample-against-binomial-assumptions
+#  also on page 4 of text
+# 1 - fixed number of trials
+# 2 - ** each observation is independent
+# 3 - two and only two outcomes
+# 4 - ** prob of success is the same for each trial
+# 5 - random variable of interest w is the number of successes
+
 There were 23 rows representing each flight of the shuttle program. Included were the following columns:
 
 |----------|---------|---------------------------------------------------------------------------------|
