@@ -189,6 +189,8 @@ CI.pi.upper
 ```{r}
 ####### LAB2 ##########
 ####### linear regression ##########
+# linear model
+# http://r-statistics.co/Linear-Regression.html
 # assessing model diagnostics
 # https://www.statmethods.net/stats/rdiagnostics.html
 ```
