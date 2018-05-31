@@ -1,6 +1,6 @@
 
 ```{r}
-challenger = read.csv("challenger.csv", header=TRUE)
+challenger = read.csv("/Users/petergrabowski/w271/challenger.csv", header=TRUE)
 ```
 
 # Introduction
@@ -22,6 +22,9 @@ challenger = read.csv("challenger.csv", header=TRUE)
 # 4 - ** prob of success is the same for each trial
 # 5 - random variable of interest w is the number of successes
 
+# TODO 
+# -- do we need to sum the number of failures for each trial and build a model based on that? The placekicking example on p75 takes a similar approach to ours, but in other examples they sum the number of success/failures
+
 There were 23 rows representing each flight of the shuttle program. Included were the following columns:
 
 |----------|---------|---------------------------------------------------------------------------------|
@@ -41,6 +44,9 @@ For the sake of the analysis, the following changes were made to the dataset:
 2 - the column `had_failure` was calculated to denote the incidence of a failed O-Ring in the flight
 
 ####### Q4 ##########
+####### 4A ##########
+The necessity of this assumption stems from the requisitite assumptions when using a binomial regression model. The use of the model requires that all observations be independent of one another and have the same probability of failure. If not for this assumptionm, the regression model would be much more complicated. For a space shuttle, this might not be the case. For example, failure of one O-ring may cause stress throughout the rest of the system, influencing the likelihood that adjacent O-rings would fail. 
+
 ```{r}
 challenger$Pressure = factor(challenger$Pressure)
 ```
@@ -86,6 +92,9 @@ anova(mod.fit, test = "Chisq")
 ```{r}
 anova(mod.fit.incidence, test = "Chisq")
 ```
+
+####### 4D ##########
+The effect of pressure was not significant in any of the analyses we ran, which supports the authors' decision to remove it from the model. However, there are concerns that remain while removing it. As our graphic analysis above shows (TODO: insert Arunima analysis), there does seem to be some weak correlation with pressure. The sample size is very small, so it's possible this is masking an otherwise weak effect size. We also haven't checked for any interaction effects with pressure, which could influence the model. Finally, a model based on temperature alone relies on heavy extrapolation -- the predicted temperature of 31 degrees is well outside the range of the sample -- while including pressure also includes data from an overlapping range with teh sample. 
 
 ####### Q5 ##########
 ####### 5A ##########
@@ -134,6 +143,8 @@ ci.pi = function(newdata, mod.fit.obj, alpha) {
 }
 ```
 
+The bounds are much wider at the lower range of the interval than the upper range because we have many fewere data points in this range. In the extreme lower range (near 31), we don't have any data points from our sample, so the confidence intervals are much larger.
+
 ```{r}
 curve(expr=ci.pi(newdata = data.frame(Temp = x), mod.fit.obj = mod.fit2, alpha=0.05)$upper, lty = "dotdash", xlim=c(31,81))
 curve(expr=ci.pi(newdata = data.frame(Temp = x), mod.fit.obj = mod.fit2, alpha=0.05)$lower, lty = "dotdash", add = TRUE, xlim=c(31,81))
@@ -165,9 +176,9 @@ CI.pi.upper = exp(CI.lin.pred.upper) / (1+ exp(CI.lin.pred.upper))
 temp_pred
 CI.pi.lower
 CI.pi.upper
-#TODO add discussion 
 ```
-
+#TODO does this sound right, or are there different assumptions for inference??
+We need to satisfy the five conditions for using a binomial model. First, there need to be a fixed number of identical trials. In our case, we're assuming that each shuttle launch was identical. Second, there need to be two possible outcomes for each option. In our case, we consider failure or non-failure of an O-ring. Third, each trial needs to be independent of one another. We make this assumptoin based on findings from the paper. Fourth, the probability of success needs to remain constant for each trial. With the information we have, there is no reason to believe success would be more or less likely from one trial to the next. Finally, the random variable needs to be the number of successes. In our case, we look at how many O-rings fail, not which O-rings are failing
 
 ```{r}
 ####### 5E ##########
