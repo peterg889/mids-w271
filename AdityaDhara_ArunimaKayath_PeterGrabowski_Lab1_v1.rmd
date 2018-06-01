@@ -1,0 +1,247 @@
+
+```{r}
+library(car)
+library(Hmisc)
+
+```
+
+```{r}
+challenger = read.csv("challenger.csv", header=TRUE)
+str(challenger)
+head(challenger)
+describe(challenger)
+
+```
+
+# Introduction
+
+## Questions addressed
+
+## Methodology
+
+## Highlight of Results
+
+# EDA
+
+There were 23 rows representing each flight of the shuttle program. Included were the following columns:
+
+|----------|---------|---------------------------------------------------------------------------------|
+| Flight   | integer | flight number, serves as an ID for this dataset                                 |
+| Temp     | int     | sea level temperature (## check this ##) at time of flight                      |
+| Pressure | int     | this was the pressure used to test O-Rings before the flight                    |
+| O. Ring  | int     | the number of O-rings that failed in the launch                                 |
+| Number   | int     | the number of O-rings that were installed in the aircraft                       |
+|----------|---------|---------------------------------------------------------------------------------|
+
+- There are only 23 total observations. So we will be making observations from a small data-set. Within those 23, there are no missing values. 
+  - The lowest temperature for which data is availabe is 53, which is much higher than the flight conditions temperature of 31. So we will be extrapolating beyond observed data using the model we build to get an estimate for 31 degrees, the temperature at the time of the flight.
+  - Pressure is only available at 3 distinct levels, and of these, there are only 2 data points when the pressure is at 100. 
+  - O.ring failure is seen in 7 out of the 23 flights. Of the 7 failures, two instances show 2 failures, and 5 instances shows 1 failure. 
+
+# Discussion
+# https://stats.stackexchange.com/questions/116954/counterexample-against-binomial-assumptions
+#  also on page 4 of text
+# 1 - fixed number of trials
+# 2 - ** each observation is independent
+# 3 - two and only two outcomes
+# 4 - ** prob of success is the same for each trial
+# 5 - random variable of interest w is the number of successes
+
+# TODO 
+# -- do we need to sum the number of failures for each trial and build a model based on that? The placekicking example on p75 takes a similar approach to ours, but in other examples they sum the number of success/failures
+
+
+Please note, the question states the Pressure variable is "Combustion pressure", while Dalal et al define the Pressure variable as the level at which the O-Ring was tested. They suggested that tests with stronger pressures could even cause degradation in the O-rings, causing blowback. We are using Dalal et al's definition here.
+
+For the sake of the analysis, the following changes were made to the dataset:
+1 - the column `ratio` was calculated to denote the proportion of failed O-Rings per flight
+    ```{r}
+    challenger$ratio = challenger$O.ring / challenger$Number
+    plot(x = challenger$Temp, y = challenger$ratio)
+    ```
+
+####### Q4 ##########
+####### 4A ##########
+The necessity of this assumption stems from the requisite assumptions when using a binomial regression model. The use of the model requires that all observations be independent of one another and have the same probability of failure. If not for this assumptionm, the regression model would be much more complicated. For a space shuttle, this might not be the case. For example, failure of one O-ring may cause stress throughout the rest of the system, influencing the likelihood that adjacent O-rings would fail. 
+
+```{r}
+plot(x = challenger$Pressure, y = challenger$ratio)
+```
+```{r}
+challenger
+```
+
+####### 4B ##########
+```{r}
+mod.fit = glm(formula = ratio ~ Temp + Pressure, family=binomial(link=logit), weights=Number, data=challenger)
+# Warning message:
+# In eval(family$initialize) : non-integer #successes in a binomial glm!
+
+mod.fit
+```
+```{r}
+summary(mod.fit)
+```
+
+####### 4C ##########
+```{r}
+library(package = car)
+Anova(mod.fit, test = "LR")
+```
+```{r}
+anova(mod.fit, test = "Chisq")
+```
+
+####### 4D ##########
+
+```{r}
+cnt_total <- count(challenger, group_by = Pressure)
+
+cnt_fails <- challenger %>% 
+  group_by(Pressure) %>% 
+  summarise(Frequency = sum(fail))
+
+temp = data.frame(Pressure = cnt_fails$Pressure,Percent_fails = cnt_fails$Frequency/cnt_total$n)
+
+ggplot(temp, aes(x=Pressure,y = Percent_fails)) + geom_bar(stat = "identity")
+```
+
+The effect of pressure was not significant in any of the analyses we ran, which supports the authors' decision to remove it from the model. However, there are concerns that remain while removing it. As our graphic analysis above shows, there does seem to be some weak correlation with pressure. The sample size is very small, so it's possible this is masking an otherwise weak effect size. We also haven't checked for any interaction effects with pressure, which could influence the model. Finally, a model based on temperature alone relies on heavy extrapolation -- the predicted temperature of 31 degrees is well outside the range of the sample -- while including pressure also includes data from an overlapping range with teh sample. 
+
+####### Q5 ##########
+####### 5A ##########
+```{r}
+mod.fit2 = glm(formula = ratio ~ Temp , family=binomial(link=logit), weights=Number, data=challenger)
+summary(mod.fit2)
+```
+
+####### 5B ##########
+```{r}
+b0 = mod.fit2$coefficients[["(Intercept)"]]
+b1 = mod.fit2$coefficients[["Temp"]]
+
+eq1 = function(x){exp(b0 + b1*x) / (1+ exp( b0 + b1*x))}
+curve(eq1, from=0, to=81, col='blue')
+```
+
+# TODO -- plot expected number of failures
+
+####### 5C ##########
+# page 89
+```{r}
+predict.data = data.frame(Temp = seq(from = 31, to = 81))
+# linear.pred = predict(object = mod.fit2, newdata = predict.data, type = "link" , se = TRUE)
+# linear.pred
+
+alpha = 0.05
+ci.pi = function(newdata, mod.fit.obj, alpha) {
+  linear.pred = predict(object = mod.fit.obj, newdata = newdata, type = "link", se= TRUE)
+  CI.lin.pred.lower = linear.pred$fit - qnorm(p = 1-alpha/2) * linear.pred$se
+  CI.lin.pred.upper = linear.pred$fit + qnorm(p = 1-alpha/2) * linear.pred$se
+  CI.pi.lower = exp(CI.lin.pred.lower) / (1+ exp(CI.lin.pred.lower))
+  CI.pi.upper = exp(CI.lin.pred.upper) / (1+ exp(CI.lin.pred.upper))
+  list(lower = CI.pi.lower, upper = CI.pi.upper)
+}
+```
+
+The bounds are much wider at the lower range of the interval than the upper range because we have many fewere data points in this range. In the extreme lower range (near 31), we don't have any data points from our sample, so the confidence intervals are much larger.
+
+```{r}
+curve(expr=ci.pi(newdata = data.frame(Temp = x), mod.fit.obj = mod.fit2, alpha=0.05)$upper, lty = "dotdash", xlim=c(0,81), ylim=c(0,1))
+curve(eq1, from=0, to=81, ylim=c(0,1), col='blue', add = TRUE)
+curve(expr=ci.pi(newdata = data.frame(Temp = x), mod.fit.obj = mod.fit2, alpha=0.05)$lower, lty = "dotdash", add = TRUE, xlim=c(0,81), ylim=c(0,1))
+
+# pi.hat = exp(linear.pred$fit) / (1 + exp(linear.pred$fit))
+# CI.lin.pred = linear.pred$fit + qnorm(p = c(alpha/2, 1-alpha/2)) * linear.pred$se.fit
+# CI.pi = exp(CI.lin.pred) / (1 + exp(CI.lin.pred))
+```
+
+
+```{r}
+####### 5D ##########
+temp_to_pred = data.frame(Temp=31)
+temp_pred = predict(object = mod.fit2, newdata = temp_to_pred, type = "link", se= TRUE)
+CI.lin.pred.lower = temp_pred$fit - qnorm(p = 1-alpha/2) * temp_pred$se
+CI.lin.pred.upper = temp_pred$fit + qnorm(p = 1-alpha/2) * temp_pred$se
+CI.pi.lower = exp(CI.lin.pred.lower) / (1+ exp(CI.lin.pred.lower))
+CI.pi.upper = exp(CI.lin.pred.upper) / (1+ exp(CI.lin.pred.upper))
+
+temp_pred
+CI.pi.lower
+CI.pi.upper
+```
+#TODO does this sound right, or are there different assumptions for inference??
+#
+# I think assumptions like normality and large sampling are important for inference. the ideas being the "variance" in parameters are normal i.e at each point, the estimate follows the central limit theorem
+# we could instead choose a more appropriate confidence interval, like likelihood ratio or agresti-caffo? and discuss the assumptions for those?
+#-- Aditya
+We need to satisfy the five conditions for using a binomial model. First, there need to be a fixed number of identical trials. In our case, we're assuming that each shuttle launch was identical. Second, there need to be two possible outcomes for each option. In our case, we consider failure or non-failure of an O-ring. Third, each trial needs to be independent of one another. We make this assumptoin based on findings from the paper. Fourth, the probability of success needs to remain constant for each trial. With the information we have, there is no reason to believe success would be more or less likely from one trial to the next. Finally, the random variable needs to be the number of successes. In our case, we look at how many O-rings fail, not which O-rings are failing
+
+
+```{r}
+####### 5E ##########
+####### parametric bootstrap ##########
+
+#Original estimated coefficients for model with temperature only from actual flight data.
+b0 = mod.fit2$coefficients[["(Intercept)"]]
+b1 = mod.fit2$coefficients[["Temp"]]
+niter = 500 #number of simulations
+
+#dataframe to store estimated probabilities from simulated runs
+results_sim <-data.frame(iteration = c(1:niter),'31' = 0, '72' = 0) 
+
+
+for (i in c(1:niter))
+{
+  #Generate random temperatures uniformly with min and max same as in data here. Number of simulated samples is 23 as in actual data.
+  x1 <- runif(n = 23, min = 53, max = 81) 
+  
+  #Estimate probability of failure from model based on actual data for each x1.
+  pi <- exp(b0 + b1*x1) / (1+ exp( b0 + b1*x1))
+  
+  #Estimate corresponding y with some random noise.
+  y <- rbinom(n = length(x1), size = 1, prob = pi)
+ 
+  #fit new model on the simulated data.
+  tempdf <- data.frame(y,x1,pi)
+  newmod.fit <-glm(formula = y ~ x1, family = binomial(link = logit),data = tempdf) 
+  
+  beta.hat0 <- newmod.fit$coefficients[1]
+  beta.hat1 <- newmod.fit$coefficients[2]
+  #probability of failure with new model at temperature = 31
+  pi.hat31 = exp(beta.hat0 + beta.hat1*31)/(1+exp(beta.hat0 + beta.hat1*31)) 
+  results_sim[i,2]<-pi.hat31
+  #probability of failure with new model at temperature = 31
+  pi.hat72 = exp(beta.hat0 + beta.hat1*72)/(1+exp(beta.hat0 + beta.hat1*72))
+  results_sim[i,3]<-pi.hat72
+}
+
+cat('\n90% confidence interval at temperate = 31 degree\n')
+quant31<-quantile(results_sim[,2], probs = c(0.05,0.5,0.95), na.rm = TRUE)
+formatC(quant31,digits=2, format="f") 
+cat('\n90% confidence interval at temperate = 72 degree\n')
+quant72<-quantile(results_sim[,3], probs = c(0.05,0.5,0.95), na.rm = TRUE)
+formatC(quant72,digits=2, format="f") 
+
+```
+
+
+```{r}
+####### 5F ##########
+####### quadratic term ##########
+```
+
+```{r}
+####### LAB1 ##########
+####### odds/prob failure ##########
+# page 955 of text, compare 31 degrees to 60 degrees
+```
+
+```{r}
+####### LAB2 ##########
+####### linear regression ##########
+# linear model
+# http://r-statistics.co/Linear-Regression.html
+# assessing model diagnostics
+# https://www.statmethods.net/stats/rdiagnostics.html
+```
