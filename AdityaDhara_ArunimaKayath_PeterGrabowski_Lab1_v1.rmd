@@ -1,8 +1,11 @@
 
+Lab 1 Solutions: Submitted by Aditya Dhara, Arunima Kayath and Peter Grabowski
+
 ```{r}
 library(car)
 library(Hmisc)
-
+library(ggplot2)
+library(dplyr)
 ```
 
 ```{r}
@@ -73,6 +76,7 @@ challenger
 
 ####### 4B ##########
 ```{r}
+
 mod.fit = glm(formula = ratio ~ Temp + Pressure, family=binomial(link=logit), weights=Number, data=challenger)
 # Warning message:
 # In eval(family$initialize) : non-integer #successes in a binomial glm!
@@ -97,6 +101,8 @@ anova(mod.fit, test = "Chisq")
 ```{r}
 cnt_total <- count(challenger, group_by = Pressure)
 
+challenger$fail <- ifelse(challenger$O.ring>0,1,0) #create a fail/ no fail binary variable
+
 cnt_fails <- challenger %>% 
   group_by(Pressure) %>% 
   summarise(Frequency = sum(fail))
@@ -104,9 +110,15 @@ cnt_fails <- challenger %>%
 temp = data.frame(Pressure = cnt_fails$Pressure,Percent_fails = cnt_fails$Frequency/cnt_total$n)
 
 ggplot(temp, aes(x=Pressure,y = Percent_fails)) + geom_bar(stat = "identity")
+
+ggplot(data = challenger) + geom_point(mapping = aes(x = Temp,y = Pressure))
+
+cor(challenger$Temp,challenger$Pressure)
 ```
 
-The effect of pressure was not significant in any of the analyses we ran, which supports the authors' decision to remove it from the model. However, there are concerns that remain while removing it. As our graphic analysis above shows, there does seem to be some weak correlation with pressure. The sample size is very small, so it's possible this is masking an otherwise weak effect size. We also haven't checked for any interaction effects with pressure, which could influence the model. Finally, a model based on temperature alone relies on heavy extrapolation -- the predicted temperature of 31 degrees is well outside the range of the sample -- while including pressure also includes data from an overlapping range with teh sample. 
+The effect of pressure was not significant in any of the analyses we ran, which supports the authors' decision to remove it from the model. However, there are concerns that remain while removing Pressure. As our graphic analysis above shows, there does seem to be some weak correlation with pressure. The sample size is very small, so it's possible this is masking an otherwise weak effect size. We also haven't checked for any interaction effects with pressure, which could influence the model. Finally, a model based on temperature alone relies on heavy extrapolation -- the predicted temperature of 31 degrees is well outside the range of the sample -- while including pressure also includes data from an overlapping range with the sample.
+
+We also checked the correlation of Temperature and Pressure to see if that could be masking the effect of Pressure. However, the correlation is small. It is interesting though that there is very little temperature variation at the lower pressure, and most of the temperature variation is seen at the higher pressure.
 
 ####### Q5 ##########
 ####### 5A ##########
@@ -229,7 +241,15 @@ formatC(quant72,digits=2, format="f")
 ```{r}
 ####### 5F ##########
 ####### quadratic term ##########
+
+mod.fit.Ho = glm(formula = ratio ~ Temp , family=binomial(link=logit), weights=Number, data=challenger)
+mod.fit.Ha = glm(formula = ratio ~ Temp + I(Temp^2) , family=binomial(link=logit), weights=Number, data=challenger)
+summary(mod.fit.Ha)
+anova(mod.fit.Ho,mod.fit.Ha,test="Chisq")
+
 ```
+
+There doesn't seem to be incremental value in adding Temp^2 to the model equation. The Anova test gives a pretty high p value, implying that there isn't enough evidence to support the rejection of the null hypothesis that the co-efficient of the Temp^2 term is 0.
 
 ```{r}
 ####### LAB1 ##########
