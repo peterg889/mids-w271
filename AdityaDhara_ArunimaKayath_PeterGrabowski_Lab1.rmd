@@ -3,6 +3,9 @@ title: "w271 Lab 1 Solutions"
 author: "Aditya Dhara, Arunima Kayath, Peter Grabowski"
 date: "June 3, 2018"
 output: pdf_document
+fontsize: 11pt
+margin: 1in
+line_spacing: single
 ---
 
 ```{r setup, include=FALSE}
@@ -48,9 +51,13 @@ head(challenger)
 ```
 
 A few things to note:
+
 - There are only 23 total observations. So we will be making observations from a small data-set. Within those 23, there are no missing values.
+
 - The lowest temperature for which data is available is 53, which is much higher than the flight conditions temperature of 31. So we will be extrapolating beyond observed data using the model we build to get an estimate for 31 degrees, the temperature at the time of the flight.
+
 - Pressure is only available at 3 distinct levels, and of these, there are only 2 data points when the pressure is at 100.
+
 - O.ring failure is seen in 7 out of the 23 flights. Of the 7 failures, two instances show 2 failures, and 5 instances shows 1 failure.
 
 For the sake of the analysis, the column `ratio` was calculated to denote the proportion of failed O-Rings per flight
@@ -70,10 +77,15 @@ plot( x = challenger$Pressure, y = challenger$ratio,
 ```
 
 We have also assessed the assumptions of a binomial distribution, which are necessary for our logistic regression to describe the data properly:
+
 1 - *Fixed number of trials*: This is clearly the case as each row in the data set has a `Number` of 6 for the number of o-rings in a shuttle
+
 2 - *Each observation is independent*: Independence is slightly questionable since the failure of one o-ring has a twisting effect putting pressure on other o-rings in each craft. This means the likelihood of failure for other o-rings in the craft could change after one o-ring fails. This is a strong assumption we will make.
+
 3 - *Two and only two outcomes*: This is also clearly the case as an o-ring failure is unambiguous. We are ignoring the causes and symptoms such as blowback or the melting of the putty. We are simply measuring if the o-ring failed or not
+
 4 - *Probability of success is the same for each trial*: The six o-rings in a craft are placed in different locations. However, the functionality and structures around the o-rings are the same, and so this is an assumption we can make.
+
 5 - *Random variable of interest $W$ is the number of successes*: This is also clearly the case as the `O.ring` variable contains the number of failed O-rings
 
 # Q4. Full model: Temperature and Pressure
