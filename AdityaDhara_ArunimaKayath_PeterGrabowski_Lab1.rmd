@@ -34,13 +34,11 @@ library(mcprofile)
 
 The dataset contains flight of the shuttle program, and included the following columns:
 
-|----------|---------|---------------------------------------------------------------------------------|
-| Flight   | integer | flight number, serves as an ID for this dataset                                 |
-| Temp     | int     | sea level temperature (## check this ##) at time of flight                      |
-| Pressure | int     | this was the pressure used to test O-Rings before the flight                    |
-| O. Ring  | int     | the number of O-rings that failed in the launch                                 |
-| Number   | int     | the number of O-rings that were installed in the aircraft                       |
-|----------|---------|---------------------------------------------------------------------------------|
+1. Flight (int): flight number, serves as an ID for this dataset
+2. Temp (int): sea level temperature (## check this ##) at time of flight
+3. Pressure (int): this was the pressure used to test O-Rings before the flight
+4. O. Ring (int): the number of O-rings that failed in the launch
+5. Number (int): the number of O-rings that were installed in the aircraft
 
 Please note, the question states the Pressure variable is "Combustion pressure", while Dalal et al define the Pressure variable as the level at which the O-Ring was tested. They suggested that tests with stronger pressures could even cause degradation in the O-rings, causing blowback. We are using Dalal et al's definition here.
 
@@ -51,7 +49,7 @@ str(challenger)
 A few things to note:
 - There are only 23 total observations. So we will be making observations from a small data-set. Within those 23, there are no missing values. 
 - The lowest temperature for which data is availabe is 53, which is much higher than the flight conditions temperature of 31. So we will be extrapolating beyond observed data using the model we build to get an estimate for 31 degrees, the temperature at the time of the flight.
-- Pressure is only available at 3 distinct levels, and of these, there are only 2 data points when the pressure is at 100. 
+- Pressure is only available at 3 distinct levels, and of these, there are only 2 data points when the pressure is at 100.
 - O.ring failure is seen in 7 out of the 23 flights. Of the 7 failures, two instances show 2 failures, and 5 instances shows 1 failure. 
 
 For the sake of the analysis, the following calculations were made in the dataset:
@@ -112,7 +110,9 @@ The effect of pressure was not significant in any of the analyses we ran, which 
 ```{r}
 plot(x=challenger$ratio, y=challenger$Pressure)
 ```
-As our graphic analysis above shows, there does seem to be some weak correlation with pressure. The sample size is very small, so it's possible this is masking an otherwise weak effect size. We also haven't checked for any interaction effects with pressure, which could influence the model. Finally, a model based on temperature alone relies on heavy extrapolation, the predicted temperature of 31 degrees is well outside the range of the sample, but including pressure also includes data from an overlapping range with the sample. 
+As our graphic analysis above shows, there does seem to be some weak correlation with pressure. The sample size is very small, so it's possible this is masking an otherwise weak effect size. We also haven't checked for any interaction effects with pressure, which could influence the model. Finally, a model based on temperature alone relies on heavy extrapolation, the predicted temperature of 31 degrees is well outside the range of the sample, but including pressure also includes data from an overlapping range with the sample.
+
+We also checked the correlation of Temperature and Pressure to see if that could be masking the effect of Pressure. However, the correlation is small. It is interesting though that there is very little temperature variation at the lower pressure, and most of the temperature variation is seen at the higher pressure.
 
 # Q5. Focused model: Temperature only
 ## 5A: Creating the model
