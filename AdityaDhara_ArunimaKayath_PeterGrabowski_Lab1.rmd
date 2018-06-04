@@ -1,6 +1,6 @@
 ---
-title: "Untitled"
-author: "Aditya Dhara"
+title: "w271 Lab 1 Solutions"
+author: "Aditya Dhara, Arunima Kayath, Peter Grabowski"
 date: "June 3, 2018"
 output: pdf_document
 ---
@@ -52,15 +52,17 @@ A few things to note:
 - Pressure is only available at 3 distinct levels, and of these, there are only 2 data points when the pressure is at 100.
 - O.ring failure is seen in 7 out of the 23 flights. Of the 7 failures, two instances show 2 failures, and 5 instances shows 1 failure. 
 
-For the sake of the analysis, the following calculations were made in the dataset:
-1 - the column `ratio` was calculated to denote the proportion of failed O-Rings per flight
+For the sake of the analysis, the column `ratio` was calculated to denote the proportion of failed O-Rings per flight
 ```{r}
 challenger$ratio = challenger$O.ring / challenger$Number
-plot(x=challenger$Temp, y=challenger$ratio)
+plot(
+  x=challenger$Temp, y=challenger$ratio,
+  main="Proportion of O-ring failures for various launch temperatures",
+  xlab="Temperature", ylab="Proportion of failures"
+)
 ```
-2 - the column `pressure` was converted to a factor. Since testing O-rings at each pressure (50, 100 and 200 psi) manifest different effects on the O-rings in a shuttle, treating it as a categorical variable makes more sense in a regression.
+
 ```{r}
-challenger$Pressure = factor(challenger$Pressure)
 pressures <- matrix(table(challenger$Pressure))
 rownames(pressures) <- c("50", "100", "200")
 colnames(pressures) <- c("Count")
@@ -93,7 +95,7 @@ mod.fit = glm(
 
 summary(mod.fit)
 ```
-From this model, we estimate for each 1 degree fahrenheit of temperature drop, the odds of an O-ring failure increase by $e^{0.09558} \approx 1.1003$. The wald confidence interval also suggests there is a 99% significance of this effect, suggesting that 99% of similarly sized samples will contain the true co-efficient of temperature within their bounds. Additionally, the wald hypothesis testing suggests that `Pressure100` and `Pressure200` are not significant in affecting the log-likelihood of O-ring failure, thus indicating the `Pressure` categorical variable might not be a strong contributor to the effect (More on that in section 4D)
+From this model, we estimate for each 1 degree fahrenheit of temperature drop, the odds of an O-ring failure increase by $e^{0.09558} \approx 1.1003$. The wald confidence interval also suggests there is a 99% significance of this effect, suggesting that 99% of similarly sized samples will contain the true co-efficient of temperature within their bounds. Additionally, the wald hypothesis testing suggests that `Pressure` does not significantly affect the log-likelihood of O-ring failure (More on that in section 4D)
 
 ## 4C: Log Likelihood Ratio Tests (LRT)
 In order to assess the effectiveness of this model, we started with the Wald confidence interval which can be seen in the summary of this model. However, since it is very liberal and assumes normality of variance in estimated parameters, we will perform the more effective Likelihood Ratio tests here.
@@ -108,9 +110,19 @@ anova(mod.fit, test = "Chisq")
 ## 4D: Removing the `Pressure` variable
 The effect of pressure was not significant in any of the analyses we ran, which supports the authors' decision to remove it from the model. However, there are concerns that remain while removing it.
 ```{r}
-plot(x=challenger$ratio, y=challenger$Pressure)
+cnt_total <- count(challenger, group_by = Pressure)
+challenger$fail <- ifelse(challenger$O.ring>0,1,0) #create a fail/ no fail binary variable
+
+cnt_fails <- challenger %>%
+  group_by(Pressure) %>%
+  summarise(Frequency = sum(fail))
+
+temp = data.frame(Pressure = cnt_fails$Pressure, Percent_fails = cnt_fails$Frequency/cnt_total$n)
+ggplot(temp, aes(x=Pressure, y=Percent_fails)) + geom_bar(stat = "identity")
+ggplot(data = challenger) + geom_point(mapping = aes(x = Temp,y = Pressure))
+cor(challenger$Temp, challenger$Pressure)
 ```
-As our graphic analysis above shows, there does seem to be some weak correlation with pressure. The sample size is very small, so it's possible this is masking an otherwise weak effect size. We also haven't checked for any interaction effects with pressure, which could influence the model. Finally, a model based on temperature alone relies on heavy extrapolation, the predicted temperature of 31 degrees is well outside the range of the sample, but including pressure also includes data from an overlapping range with the sample.
+The effect of pressure was not significant in any of the analyses we ran, which supports the authors' decision to remove it from the model. However, there are concerns that remain while removing Pressure. As our graphic analysis above shows, there does seem to be some weak correlation with pressure. The sample size is very small, so it's possible this is masking an otherwise weak effect size. We also haven't checked for any interaction effects with pressure, which could influence the model. Finally, a model based on temperature alone relies on heavy extrapolation -- the predicted temperature of 31 degrees is well outside the range of the sample -- while including pressure also includes data from an overlapping range with the sample.
 
 We also checked the correlation of Temperature and Pressure to see if that could be masking the effect of Pressure. However, the correlation is small. It is interesting though that there is very little temperature variation at the lower pressure, and most of the temperature variation is seen at the higher pressure.
 
@@ -148,8 +160,10 @@ pi.vs.temp = function(x) { exp(b0 + b1*x) / (1+ exp( b0 + b1*x)) }
 exp.failures.vs.temp = function(x) { 6 * pi.vs.temp(x) }
 
 par(mfrow=c(1, 2))
-curve(pi.vs.temp, from=10, to=90, col='blue')
-curve(exp.failures.vs.temp, from=10, to=90, col='red')
+curve(pi.vs.temp, from=10, to=90, col='blue',
+      main="Estimated Pi vs Temperature", xlab="Temperature", ylab="Estimated pi")
+curve(exp.failures.vs.temp, from=10, to=90, col='red',
+      main="E(O-Ring Failures) vs Temperature", xlab="Temperature", ylab="E(O-Ring Failures)")
 ```
 
 ## 5C: Wald confidence interval bands
@@ -168,9 +182,18 @@ ci.pi = function(newdata, mod.fit.obj, alpha) {
   list(lower = CI.pi.lower, upper = CI.pi.upper)
 }
 
-curve(expr=ci.pi(newdata = data.frame(Temp = x), mod.fit.obj = mod.fit2, alpha=0.05)$upper, lty = "dotdash", xlim=c(0,81), ylim=c(0,1))
-curve(pi.vs.temp, from=0, to=81, ylim=c(0,1), col='blue', add = TRUE)
-curve(expr=ci.pi(newdata = data.frame(Temp = x), mod.fit.obj = mod.fit2, alpha=0.05)$lower, lty = "dotdash", add = TRUE, xlim=c(0,81), ylim=c(0,1))
+curve(
+  ci.pi(newdata = data.frame(Temp = x), mod.fit.obj = mod.fit2, alpha=0.05)$upper,
+  lty = "dotdash", xlim=c(0,81), ylim=c(0,1),
+  main="Wald confidence intervals for Estimated Probability of O-Ring Failures over Temperature",
+  xlab="Temperature", ylab="Estimated Probability"
+)
+curve(
+  pi.vs.temp,
+  xlim=c(0, 81), ylim=c(0,1),
+  col='blue', add = TRUE
+)
+curve(ci.pi(newdata = data.frame(Temp = x), mod.fit.obj = mod.fit2, alpha=0.05)$lower, lty = "dotdash", add = TRUE, xlim=c(0,81), ylim=c(0,1))
 ```
 
 The bounds are much wider at the lower range of the interval than the upper range because we have many fewere data points in this range. In the extreme lower range (near 31), we don't have any data points from our sample, so the confidence intervals are much larger.
@@ -313,7 +336,11 @@ vs. Fitted lines plot. There is also no even spread between.
 These diagnostics suggest that a linear model is a poor fit for this sample data since we are violating the majority of the assumptions necessary for a linear model to work: all of linearity, zero-conditional mean, homoskedasticity and normality of error term are violated. Additionally, plotting the linear model also shows that the probability of an o-ring failure goes below 0 at roughly 78 degrees of temperature. This is impractical and doesn't represent the data well.
 
 ```{r}
-plot(challenger$Temp, challenger$ratio)
+plot(
+  challenger$Temp, challenger$ratio,
+  main="Linear model of Proportion of O-ring failures against Temperature",
+  xlab="Temperature", ylab="Proportion of O-ring failures"
+)
 abline(mod.linear)
 ```
 
