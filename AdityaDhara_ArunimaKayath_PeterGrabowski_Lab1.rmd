@@ -44,13 +44,14 @@ Please note, the question states the Pressure variable is "Combustion pressure",
 
 ```{r}
 str(challenger)
+describe(challenger)
 ```
 
 A few things to note:
-- There are only 23 total observations. So we will be making observations from a small data-set. Within those 23, there are no missing values. 
+- There are only 23 total observations. So we will be making observations from a small data-set. Within those 23, there are no missing values.
 - The lowest temperature for which data is availabe is 53, which is much higher than the flight conditions temperature of 31. So we will be extrapolating beyond observed data using the model we build to get an estimate for 31 degrees, the temperature at the time of the flight.
 - Pressure is only available at 3 distinct levels, and of these, there are only 2 data points when the pressure is at 100.
-- O.ring failure is seen in 7 out of the 23 flights. Of the 7 failures, two instances show 2 failures, and 5 instances shows 1 failure. 
+- O.ring failure is seen in 7 out of the 23 flights. Of the 7 failures, two instances show 2 failures, and 5 instances shows 1 failure.
 
 For the sake of the analysis, the column `ratio` was calculated to denote the proportion of failed O-Rings per flight
 ```{r}
@@ -63,10 +64,9 @@ plot(
 ```
 
 ```{r}
-pressures <- matrix(table(challenger$Pressure))
-rownames(pressures) <- c("50", "100", "200")
-colnames(pressures) <- c("Count")
-pressures
+plot( x = challenger$Pressure, y = challenger$ratio,
+  main="Proportion of O-ring failures for various pressures",
+  xlab="Pressure", ylab="Proportion of failures")
 ```
 
 We have also assessed the assumptions of a binomial distribution, which are necessary for our logistic regression to describe the data properly:
@@ -95,7 +95,7 @@ mod.fit = glm(
 
 summary(mod.fit)
 ```
-From this model, we estimate for each 1 degree fahrenheit of temperature drop, the odds of an O-ring failure increase by $e^{0.09558} \approx 1.1003$. The wald confidence interval also suggests there is a 99% significance of this effect, suggesting that 99% of similarly sized samples will contain the true co-efficient of temperature within their bounds. Additionally, the wald hypothesis testing suggests that `Pressure` does not significantly affect the log-likelihood of O-ring failure (More on that in section 4D)
+From this model, we estimate for each 1 degree fahrenheit of temperature drop, the odds of an O-ring failure increase by $e^{0.098297} \approx 1.1033$. The wald confidence interval also suggests there is a 97% significance of this effect, suggesting that 97% of similarly sized samples will contain the true co-efficient of temperature within their bounds. Additionally, the Wald hypothesis testing suggests that `Pressure` does not significantly affect the log-likelihood of O-ring failure (More on that in section 4D)
 
 ## 4C: Log Likelihood Ratio Tests (LRT)
 In order to assess the effectiveness of this model, we started with the Wald confidence interval which can be seen in the summary of this model. However, since it is very liberal and assumes normality of variance in estimated parameters, we will perform the more effective Likelihood Ratio tests here.
@@ -106,6 +106,8 @@ Anova(mod.fit, test = "LR")
 ```{r}
 anova(mod.fit, test = "Chisq")
 ```
+
+The Likelihood Ratio test confirms that Temperature has a significant effect on likelihood of failure, while there isn't sufficient evidence to show that Pressure has a significant effect on likelihood of failure.
 
 ## 4D: Removing the `Pressure` variable
 The effect of pressure was not significant in any of the analyses we ran, which supports the authors' decision to remove it from the model. However, there are concerns that remain while removing it.
@@ -122,7 +124,7 @@ ggplot(temp, aes(x=Pressure, y=Percent_fails)) + geom_bar(stat = "identity")
 ggplot(data = challenger) + geom_point(mapping = aes(x = Temp,y = Pressure))
 cor(challenger$Temp, challenger$Pressure)
 ```
-The effect of pressure was not significant in any of the analyses we ran, which supports the authors' decision to remove it from the model. However, there are concerns that remain while removing Pressure. As our graphic analysis above shows, there does seem to be some weak correlation with pressure. The sample size is very small, so it's possible this is masking an otherwise weak effect size. We also haven't checked for any interaction effects with pressure, which could influence the model. Finally, a model based on temperature alone relies on heavy extrapolation -- the predicted temperature of 31 degrees is well outside the range of the sample -- while including pressure also includes data from an overlapping range with the sample.
+The effect of pressure was not significant in any of the analyses we ran, which supports the authors' decision to remove it from the model. However, there are concerns that remain while removing Pressure. As our graphic analysis above shows, there does seem to be some weak correlation with pressure. The sample size is very small, so it's possible this is masking an otherwise weak effect size. We also haven't checked for any interaction effects with pressure, which could influence the model.
 
 We also checked the correlation of Temperature and Pressure to see if that could be masking the effect of Pressure. However, the correlation is small. It is interesting though that there is very little temperature variation at the lower pressure, and most of the temperature variation is seen at the higher pressure.
 
@@ -240,32 +242,33 @@ The paper used a paramteric bootstrap method to calculate 90% confidence interva
 #Original estimated coefficients for model with temperature only from actual flight data.
 b0 = mod.fit2$coefficients[["(Intercept)"]]
 b1 = mod.fit2$coefficients[["Temp"]]
-niter = 500 #number of simulations
+niter = 1000 #number of simulations
 
 #dataframe to store estimated probabilities from simulated runs
 results_sim <- data.frame(iteration = c(1:niter), '31' = 0, '72' = 0)
 
+set.seed(8529)
 for (i in c(1:niter)) {
   #Generate random temperatures uniformly with min and max same as in data here. Number of simulated samples is 23 as in actual data.
-  x1 <- runif(n = 23, min = 53, max = 81) 
-  
+  x1 <- runif(n = 23, min = 53, max = 81)
+
   #Estimate probability of failure from model based on actual data for each x1.
   pi <- exp(b0 + b1*x1) / (1+ exp( b0 + b1*x1))
-  
+
   #Estimate corresponding y with some random noise.
   y <- rbinom(n = length(x1), size = 6, prob = pi) / 6
- 
+
   #fit new model on the simulated data.
   tempdf <- data.frame(y, x1, pi, Number = 6)
   newmod.fit <- glm(formula = y ~ x1, family = binomial(link = logit), weights = Number, data = tempdf)
-  
+
   beta.hat0 <- newmod.fit$coefficients[1]
   beta.hat1 <- newmod.fit$coefficients[2]
-  
+
   #probability of failure with new model at temperature = 31
-  pi.hat31 = exp(beta.hat0 + beta.hat1*31)/(1+exp(beta.hat0 + beta.hat1*31)) 
+  pi.hat31 = exp(beta.hat0 + beta.hat1*31)/(1+exp(beta.hat0 + beta.hat1*31))
   results_sim[i, 2]<-pi.hat31
-  
+
   #probability of failure with new model at temperature = 72
   pi.hat72 = exp(beta.hat0 + beta.hat1*72)/(1+exp(beta.hat0 + beta.hat1*72))
   results_sim[i, 3]<-pi.hat72
@@ -294,7 +297,7 @@ anova(mod.fit.Ho, mod.fit.Ha, test="Chisq")
 There doesn't seem to be incremental value in adding Temp^2 to the model equation. The Anova test gives a pretty high p value, implying that there isn't enough evidence to support the rejection of the null hypothesis that the co-efficient of the $Temp^2$ term is 0.
 
 # Interpretation and Model choice
-## 1. Interpretation:
+## Questiond 3a. Interpretation:
 
 From our final model, we estimate that for each 1 degree fahrenheit decrease in temperature, the odds of an O-ring failure increase by $e^{0.11560} \approx 1.1225$. The odds of an O-ring failure at any one temperature can be estimated as:
 $$
@@ -306,11 +309,11 @@ $$
 = \frac{e^{5.08498 - 0.11560(Temp)}}{1 + e^{5.08498 - 0.11560(Temp)}}
 $$
 
-We estimate at temperature 31 degrees fahrenheit, there is a 0.85 probability of O-ring failure with a 90% condfidence interval between 0.27 and 0.99. In terms of odds, that's a 5.667 to 1 odds of O-ring failure with a 90% confidence interval between 0.375 to 1 and 99 to 1 odds.
+We estimate at temperature 31 degrees fahrenheit, there is a 0.85 probability of O-ring failure with a 90% confidence interval between 0.30 and 0.99. In terms of odds, that's a 5.667 to 1 odds of O-ring failure with a 90% confidence interval between 0.43 to 1 and 99 to 1 odds.
 
-Similarly, we estimate at temperature 72 degrees fahrenheit, there is a 0.03 probability of O-ring failure with a 90% condfidence interval between 0.01 and 0.05 of an O-ring failure. In terms of odds, that's a 32.1 to 1 odds of each O-ring staying intact with a 90% confidence interval between 99 to 1 and 20 to 1 odds of the O-rings staying intact.
+Similarly, we estimate at temperature 72 degrees fahrenheit, there is a 0.03 probability of O-ring failure with a 90% condfidence interval between 0.01 and 0.07 of an O-ring failure. In terms of odds, that's a 32 to 1 odds of O-ring staying intact(0.031 to 1 odds of O-ring failure) with a 90% confidence interval between 99 to 1(0.01 to 1 odds of O-ring failure) and 13 to 1 odds of the O-rings staying intact(0.075 to 1 odds of O-ring failure)
 
-## 2. Comparison with linear model
+## Questions 3b. Comparison with linear model
 For the sake of exploration, we look at a linear regression model that fits `ratio` on `Temp` (since it is our Final model). First we fit a model, and assess it's validity.
 ```{r}
 mod.linear = lm(ratio ~ Temp, weights=Number, data=challenger)
