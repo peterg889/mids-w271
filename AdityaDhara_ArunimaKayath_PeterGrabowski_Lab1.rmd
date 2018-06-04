@@ -32,10 +32,10 @@ library(car)
 library(mcprofile)
 ```
 
-The dataset contains flight of the shuttle program, and included the following columns:
+The data set contains flight of the shuttle program, and included the following columns:
 
-1. Flight (int): flight number, serves as an ID for this dataset
-2. Temp (int): sea level temperature (## check this ##) at time of flight
+1. Flight (int): flight number, serves as an ID for this data set
+2. Temp (int): sea level temperature at time of flight
 3. Pressure (int): this was the pressure used to test O-Rings before the flight
 4. O. Ring (int): the number of O-rings that failed in the launch
 5. Number (int): the number of O-rings that were installed in the aircraft
@@ -44,12 +44,12 @@ Please note, the question states the Pressure variable is "Combustion pressure",
 
 ```{r}
 str(challenger)
-describe(challenger)
+head(challenger)
 ```
 
 A few things to note:
 - There are only 23 total observations. So we will be making observations from a small data-set. Within those 23, there are no missing values.
-- The lowest temperature for which data is availabe is 53, which is much higher than the flight conditions temperature of 31. So we will be extrapolating beyond observed data using the model we build to get an estimate for 31 degrees, the temperature at the time of the flight.
+- The lowest temperature for which data is available is 53, which is much higher than the flight conditions temperature of 31. So we will be extrapolating beyond observed data using the model we build to get an estimate for 31 degrees, the temperature at the time of the flight.
 - Pressure is only available at 3 distinct levels, and of these, there are only 2 data points when the pressure is at 100.
 - O.ring failure is seen in 7 out of the 23 flights. Of the 7 failures, two instances show 2 failures, and 5 instances shows 1 failure.
 
@@ -70,15 +70,15 @@ plot( x = challenger$Pressure, y = challenger$ratio,
 ```
 
 We have also assessed the assumptions of a binomial distribution, which are necessary for our logistic regression to describe the data properly:
-1 - *Fixed number of trials*: This is clearly the case as each row in the dataset has a `Number` of 6 for the number of o-rings in a shuttle
+1 - *Fixed number of trials*: This is clearly the case as each row in the data set has a `Number` of 6 for the number of o-rings in a shuttle
 2 - *Each observation is independent*: Independence is slightly questionable since the failure of one o-ring has a twisting effect putting pressure on other o-rings in each craft. This means the likelihood of failure for other o-rings in the craft could change after one o-ring fails. This is a strong assumption we will make.
-3 - *Two and only two outcomes*: This is also clearly the case as an o-ring failure is unambiguous. We are ignoring the causes and symptoms such as blowby or the melting of the putty. We are simply measuring if the o-ring failed or not
+3 - *Two and only two outcomes*: This is also clearly the case as an o-ring failure is unambiguous. We are ignoring the causes and symptoms such as blowback or the melting of the putty. We are simply measuring if the o-ring failed or not
 4 - *Probability of success is the same for each trial*: The six o-rings in a craft are placed in different locations. However, the functionality and structures around the o-rings are the same, and so this is an assumption we can make.
 5 - *Random variable of interest $W$ is the number of successes*: This is also clearly the case as the `O.ring` variable contains the number of failed O-rings
 
 # Q4. Full model: Temperature and Pressure
 ## 4A: Independence assumption and problems
-The necessity of this assumption stems from the requisitite assumptions when using a binomial regression model. The use of the model requires that all observations be independent of one another and have the same probability of failure. If not for this assumptionm, the regression model would be much more complicated. As a result, the log likelihood function based on the model that is used to perform Maximum Likelihood Estimation will also become increasingly complicated with joint probability terms.
+The necessity of this assumption stems from the requisite assumptions when using a binomial regression model. The use of the model requires that all observations be independent of one another and have the same probability of failure. If not for this assumption, the regression model would be much more complicated. As a result, the log likelihood function based on the model that is used to perform Maximum Likelihood Estimation will also become increasingly complicated with joint probability terms.
 
 For a space shuttle the independence of failure of O-rings is a strong assumption. For example, failure of one O-ring may cause stress throughout the rest of the system, influencing the likelihood that adjacent O-rings would fail.
 
@@ -95,7 +95,7 @@ mod.fit = glm(
 
 summary(mod.fit)
 ```
-From this model, we estimate for each 1 degree fahrenheit of temperature drop, the odds of an O-ring failure increase by $e^{0.098297} \approx 1.1033$. The wald confidence interval also suggests there is a 97% significance of this effect, suggesting that 97% of similarly sized samples will contain the true co-efficient of temperature within their bounds. Additionally, the Wald hypothesis testing suggests that `Pressure` does not significantly affect the log-likelihood of O-ring failure (More on that in section 4D)
+From this model, we estimate for each 1 degree Fahrenheit of temperature drop, the odds of an O-ring failure increase by $e^{0.098297} \approx 1.1033$. The Wald confidence interval also suggests there is a 97% significance of this effect, suggesting that 97% of similarly sized samples will contain the true co-efficient of temperature within their bounds. Additionally, the Wald hypothesis testing suggests that `Pressure` does not significantly affect the log-likelihood of O-ring failure (More on that in section 4D)
 
 ## 4C: Log Likelihood Ratio Tests (LRT)
 In order to assess the effectiveness of this model, we started with the Wald confidence interval which can be seen in the summary of this model. However, since it is very liberal and assumes normality of variance in estimated parameters, we will perform the more effective Likelihood Ratio tests here.
@@ -143,10 +143,10 @@ mod.fit2 = glm(
 summary(mod.fit2)
 ```
 
-From this model, we estimate for each 1 degree fahrenheit of temperature drop, the odds of an O-ring failure increase by $e^{0.11560} \approx 1.1225$. We can also observe the wald hypothesis testing yields that the intercept as well as the Temperature paramters have achieved at least 95% significance.
+From this model, we estimate for each 1 degree Fahrenheit of temperature drop, the odds of an O-ring failure increase by $e^{0.11560} \approx 1.1225$. We can also observe the Wald hypothesis testing yields that the intercept as well as the Temperature parameters have achieved at least 95% significance.
 
 ## 5B: Plots of the logistic regression model
-We use the esimated parameters to create the logistic regression model formula and plot it using the `curve` built-in function. This formula would plot the estimated expected probabilities of any O-ring's failure given a temperature (note, $F$ is the random variable representing a single O-ring failure).
+We use the estimated parameters to create the logistic regression model formula and plot it using the `curve` built-in function. This formula would plot the estimated expected probabilities of any O-ring's failure given a temperature (note, $F$ is the random variable representing a single O-ring failure).
 $$
 E(\hat{F}) = \hat{\pi} = \frac{e^{\hat{\beta_0} + \hat{\beta_1} temp}}{1 + e^{\hat{\beta_0} + \hat{\beta_1} temp}}
 $$
@@ -170,7 +170,7 @@ curve(exp.failures.vs.temp, from=10, to=90, col='red',
 
 ## 5C: Wald confidence interval bands
 
-We can utilize the model's fitted values to determine the wald confidence interval bands for $\pi$ at 95% confidence. We utilize the `qnorm` function to calculate the value z-statistic for $\alpha = 0.05$, and multiply it with the $\hat{Var}(\hat{W})$ (which can also be found in the model object).
+We can utilize the model's fitted values to determine the Wald confidence interval bands for $\pi$ at 95% confidence. We utilize the `qnorm` function to calculate the value z-statistic for $\alpha = 0.05$, and multiply it with the $\hat{Var}(\hat{W})$ (which can also be found in the model object).
 
 ```{r}
 predict.data = data.frame(Temp = seq(from = 31, to = 81))
@@ -198,7 +198,7 @@ curve(
 curve(ci.pi(newdata = data.frame(Temp = x), mod.fit.obj = mod.fit2, alpha=0.05)$lower, lty = "dotdash", add = TRUE, xlim=c(0,81), ylim=c(0,1))
 ```
 
-The bounds are much wider at the lower range of the interval than the upper range because we have many fewere data points in this range. In the extreme lower range (near 31), we don't have any data points from our sample, so the confidence intervals are much larger.
+The bounds are much wider at the lower range of the interval than the upper range because we have many fewer data points in this range. In the extreme lower range (near 31), we don't have any data points from our sample, so the confidence intervals are much larger.
 
 ## 5D: Prediction at 31 degrees and confidence interval
 
@@ -232,7 +232,7 @@ data.frame(
 From the above, it appears the predicted probability of an O-ring failure is roughly 81.7% with a 95% profile LR confidence interval of roughly 14.1% and 99.1%. We can compare the profile LR results above with the Wald results and conclude the profile LR intervals are valid since they are similar in value. The Wald test assumes the variance in the fitted values follows a normal distribution, which by way of the central limit theorem could be true for large enough samples. However, since this sample is very small with $n = 23$, normality of variance is a strong assumption to make, and so the profile LR confidence intervals are better estimates.
 
 ## 5E: Parametric bootstrap
-The paper used a paramteric bootstrap method to calculate 90% confidence intervals for various temperatures, so we are replicating it here. We are following the prescribed steps:
+The paper used a parametric bootstrap method to calculate 90% confidence intervals for various temperatures, so we are replicating it here. We are following the prescribed steps:
 1 - simulate a large number of data sets, each $n = 23$ to match our sample in size. Here we created 500 such samples
 2 - estimate new models for each data set
 3 - compute $\hat{\pi}$ using each of those models at the temperatures of interest - 31 degrees and 72 degrees
@@ -294,12 +294,12 @@ summary(mod.fit.Ha)
 anova(mod.fit.Ho, mod.fit.Ha, test="Chisq")
 ```
 
-There doesn't seem to be incremental value in adding Temp^2 to the model equation. The Anova test gives a pretty high p value, implying that there isn't enough evidence to support the rejection of the null hypothesis that the co-efficient of the $Temp^2$ term is 0.
+There doesn't seem to be incremental value in adding Temp^2 to the model equation. The Nova test gives a pretty high p value, implying that there isn't enough evidence to support the rejection of the null hypothesis that the co-efficient of the $Temp^2$ term is 0.
 
 # Interpretation and Model choice
 ## Questiond 3a. Interpretation:
 
-From our final model, we estimate that for each 1 degree fahrenheit decrease in temperature, the odds of an O-ring failure increase by $e^{0.11560} \approx 1.1225$. The odds of an O-ring failure at any one temperature can be estimated as:
+From our final model, we estimate that for each 1 degree Fahrenheit decrease in temperature, the odds of an O-ring failure increase by $e^{0.11560} \approx 1.1225$. The odds of an O-ring failure at any one temperature can be estimated as:
 $$
 \hat{\beta_0} + \hat{\beta_1} Temp = 5.08498 - 0.11560(Temp)
 $$
@@ -309,9 +309,9 @@ $$
 = \frac{e^{5.08498 - 0.11560(Temp)}}{1 + e^{5.08498 - 0.11560(Temp)}}
 $$
 
-We estimate at temperature 31 degrees fahrenheit, there is a 0.85 probability of O-ring failure with a 90% confidence interval between 0.30 and 0.99. In terms of odds, that's a 5.667 to 1 odds of O-ring failure with a 90% confidence interval between 0.43 to 1 and 99 to 1 odds.
+We estimate at temperature 31 degrees Fahrenheit, there is a 0.85 probability of O-ring failure with a 90% confidence interval between 0.30 and 0.99. In terms of odds, that's a 5.667 to 1 odds of O-ring failure with a 90% confidence interval between 0.43 to 1 and 99 to 1 odds.
 
-Similarly, we estimate at temperature 72 degrees fahrenheit, there is a 0.03 probability of O-ring failure with a 90% condfidence interval between 0.01 and 0.07 of an O-ring failure. In terms of odds, that's a 32 to 1 odds of O-ring staying intact(0.031 to 1 odds of O-ring failure) with a 90% confidence interval between 99 to 1(0.01 to 1 odds of O-ring failure) and 13 to 1 odds of the O-rings staying intact(0.075 to 1 odds of O-ring failure)
+Similarly, we estimate at temperature 72 degrees Fahrenheit, there is a 0.03 probability of O-ring failure with a 90% confidence interval between 0.01 and 0.07 of an O-ring failure. In terms of odds, that's a 32 to 1 odds of O-ring staying intact(0.031 to 1 odds of O-ring failure) with a 90% confidence interval between 99 to 1(0.01 to 1 odds of O-ring failure) and 13 to 1 odds of the O-rings staying intact(0.075 to 1 odds of O-ring failure)
 
 ## Questions 3b. Comparison with linear model
 For the sake of exploration, we look at a linear regression model that fits `ratio` on `Temp` (since it is our Final model). First we fit a model, and assess it's validity.
@@ -329,9 +329,9 @@ plot(mod.linear)
 From this we can see the assumptions of a BLUE linear model:
 1 - linearity: the QQ plot does not show a linear fit, thus linearity is not evidenced in the sample
 2 - variation in independent variables: from the EDA above, we know the temperature variable has variance (albeit a small one)
-3 - no perfect collinearity: N/A since we are only assessing one independent variable
+3 - no perfect co-linearity: N/A since we are only assessing one independent variable
 4 - zero conditional mean: the Residuals vs Fitted line shows this assumption is violated severely
-5 - homoskedacity: this is clearly violated, as can be seen in the residuals vs fitted line. the variance in errors
+5 - homoskedasticity: this is clearly violated, as can be seen in the residuals vs fitted line. the variance in errors
 seems to decrease sharply then increase again as fitted values increase.
 6 - normality of error term: it appears as though the residuals are clustered around 0 in the Residuals
 vs. Fitted lines plot. There is also no even spread between.
